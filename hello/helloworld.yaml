@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aks-helowld
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aks-helowld
+  template:
+    metadata:
+      labels:
+        app: aks-helowld
+    spec:
+      containers:
+      - name: aks-helowld
+        image: mcr.microsoft.com/azuredocs/aks-helloworld:v1
+        ports:
+        - containerPort: 80
+        env:
+        - name: TITLE
+          value: "Welcome to myrepo"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aks-helowld
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+  selector:
+    app: aks-helowld
