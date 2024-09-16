@@ -1,0 +1,155 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elasticsearch
+  namespace: elk
+spec:
+  serviceName: "elasticsearch"
+  replicas: 2
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      containers:
+      - name: elasticsearch
+        image: bitnami/elasticsearch:7.17.23
+        ports:
+        - containerPort: 9200
+          name: http
+        - containerPort: 9300
+          name: transport
+#       command: ["/bin/sh"]
+ #      args: ["-c","sudo sysctl -w vm.max_map_count=262144"]
+        env:
+        - name: BITNAMI_DEBUG
+          value: "false"
+        - name: MY_POD
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: ELASTICSEARCH_USERNAME
+          value: elastic
+        - name: ELASTICSEARCH_MINIMUM_MASTER_NODES
+          value: "2"
+        - name: ELASTICSEARCH_DISCOVERY_TYPE
+          value: multi-node
+        - name: ELASTICSEARCH_PASSWORD
+          value: root123
+        - name: ELASTICSEARCH_IS_DEDICATED_NODE
+          value: "no"
+        - name: ELASTICSEARCH_CLUSTER_NAME
+          value: elk
+        - name: ELASTICSEARCH_CLUSTER_HOSTS
+          value: elasticsearch.elk
+        - name: ELASTICSEARCH_TOTAL_NODES
+          value: "2"
+        - name: ELASTICSEARCH_ADVERTISED_HOSTNAME
+          value: "$(MY_POD).elasticsearch.elk"
+        - name: ELASTICSEARCH_NODE_ROLES
+          value: master
+        - name: ELASTICSEARCH_HEAP_SIZE
+          value: 1024m
+        - name: ELASTICSEARCH_TRANSPORT_PORT_NUMBER
+          value: "9300"
+        - name: ELASTICSEARCH_HTTP_PORT_NUMBER
+          value: "9200"
+        - name: ELASTICSEARCH_CLUSTER_MASTER_HOSTS
+          value: elasticsearch-0 elasticsearch-1
+        volumeMounts:
+        - name: elasticsearch-data
+          mountPath: /usr/share/elasticsearch/data
+       command: ["/bin/sh"]
+       args: ["-c","sudo sysctl -w vm.max_map_count=262144"]
+#      initContainers:
+#      - command:
+#       - /bin/bash
+#        - -ec
+#        - |
+#          CURRENT=`sysctl -n vm.max_map_count`;
+#          DESIRED="262144";
+#         if [ "$DESIRED" -gt "$CURRENT" ]; then
+#         sysctl -w vm.max_map_count=262144;
+#          fi;
+#          CURRENT=`sysctl -n fs.file-max`;
+#          DESIRED="65536";
+#          if [ "$DESIRED" -gt "$CURRENT" ]; then
+#              sysctl -w fs.file-max=65536;
+#          fi;
+        image: docker.io/bitnami/os-shell:12-debian-12-r16
+        imagePullPolicy: IfNotPresent
+        name: sysctl
+        resources:
+          limits:
+            cpu: 150m
+            ephemeral-storage: 1Gi
+            memory: 192Mi
+          requests:
+            cpu: 100m
+            ephemeral-storage: 50Mi
+            memory: 128Mi
+        securityContext:
+          privileged: true
+          runAsUser: 0
+      - args:
+        - -ec
+        - |
+          #!/bin/bash
+
+          . /opt/bitnami/scripts/libfs.sh
+          . /opt/bitnami/scripts/elasticsearch-env.sh
+
+          if ! is_dir_empty "$DB_DEFAULT_PLUGINS_DIR"; then
+              cp -nr / "$DB_DEFAULT_PLUGINS_DIR"/* /plugins
+          fi
+        command:
+        - /bin/bash
+        image: docker.io/bitnami/elasticsearch:8.12.2
+        imagePullPolicy: IfNotPresent
+        name: copy-default-plugins
+        resources:
+          limits:
+            cpu: "2"
+            memory: 2Gi
+          requests:
+            cpu: "1"
+            memory: 2Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1001
+          runAsNonRoot: true
+          runAsUser: 1001
+        volumeMounts:
+        - mountPath: /tmp
+          name: empty-dir
+          subPath: tmp-dir
+        - mountPath: /plugins
+          name: empty-dir
+          subPath: app-plugins-dir
+      restartPolicy: Always
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: Always
+    
+      volumes:
+
+      - emptyDir: {}
+        name: empty-dir
+          
+  volumeClaimTemplates:
+  - metadata:
+      name: elasticsearch-data
+    spec:
+      accessModes: [ "ReadWriteMany" ]
+      storageClassName: "nfs-client"
+      resources:
+        requests:
+          storage: 7Gi
