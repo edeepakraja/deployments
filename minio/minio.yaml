@@ -15,7 +15,7 @@ stringData:
     export MINIO_STORAGE_CLASS_STANDARD="EC:2"
     export MINIO_BROWSER="on"
     export MINIO_NOTIFY_POSTGRES_ENABLE_PRIMARY="on"
-    export MINIO_NOTIFY_POSTGRES_CONNECTION_STRING_PRIMARY="host=postgresql.psql.svc.cluster.local port=5432 user=keycloak password=root123 dbname=keycloak sslmode=disable"
+    export MINIO_NOTIFY_POSTGRES_CONNECTION_STRING_PRIMARY="host=postgres.psql.svc.cluster.local port=5432 user=keycloak password=root123 dbname=keycloak sslmode=disable"
     export MINIO_NOTIFY_POSTGRES_TABLE_PRIMARY="minioevents"
     export MINIO_NOTIFY_POSTGRES_FORMAT_PRIMARY="namespace"
     export MINIO_NOTIFY_POSTGRES_COMMENT_PRIMARY="PostgreSQL Notification Target for MinIO"
